@@ -1,0 +1,96 @@
+// server.js
+const express = require("express");
+const mongoose = require("mongoose");
+const multer = require("multer");
+const XLSX = require("xlsx");
+const fs = require("fs");
+const app = express();
+const cors = require("cors");
+
+// Utilisation du middleware CORS
+app.use(
+  cors({
+    origin: "http://localhost:5173", // Remplacez cette URL par celle de votre frontend si nécessaire
+    methods: ["GET", "POST", "PUT", "DELETE"], // Les méthodes autorisées
+    allowedHeaders: ["Content-Type", "Authorization"], // Les en-têtes autorisés
+  })
+);
+
+// Configuration de multer pour l'upload de fichier
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    cb(null, file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage });
+
+// Connexion à la base de données MongoDB
+mongoose
+  .connect("mongodb://localhost:27017/emihack", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("Connecté à la base de données MongoDB"))
+  .catch((err) => console.error("Erreur de connexion à MongoDB :", err));
+
+// Définir le schéma de la collection "source"
+const sourceSchema = new mongoose.Schema({
+  nom: { type: String, required: true },
+  type: { type: String, required: true },
+  derniereMiseAJour: { type: Date, default: Date.now },
+  frequence: { type: String, required: true },
+  statut: { type: String, enum: ["Actif", "Inactif"], default: "Actif" },
+  data: [{ type: mongoose.Schema.Types.Mixed }], // Cette ligne permet d'ajouter des données générales
+});
+
+// Créer un modèle basé sur le schéma
+const Source = mongoose.model("Source", sourceSchema);
+
+// Route pour ajouter une nouvelle source via un fichier Excel
+app.post("/sources/upload", upload.single("file"), async (req, res) => {
+  try {
+    const filePath = req.file.path;
+    console.log("Chemin du fichier téléchargé:", filePath);
+
+    // Lire le fichier Excel
+    const workbook = XLSX.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+    // Afficher les données extraites du fichier Excel
+    console.log("Données extraites du fichier Excel:", jsonData);
+
+    // Insérer toutes les données en une seule fois
+    const result = await Source.insertMany(jsonData);
+
+    // Supprimer le fichier après traitement
+    fs.unlinkSync(filePath);
+
+    res
+      .status(201)
+      .send({ message: "Sources ajoutées avec succès", data: result });
+  } catch (error) {
+    console.error("Erreur lors de l'importation du fichier Excel :", error);
+    res.status(400).send({ error: "Erreur lors de l'importation du fichier" });
+  }
+});
+
+// Route pour afficher toutes les sources
+app.get("/sources", async (req, res) => {
+  try {
+    const sources = await Source.find();
+    res.send(sources);
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+// Lancer le serveur
+app.listen(3000, () => {
+  console.log("Serveur démarré sur http://localhost:3000");
+});
