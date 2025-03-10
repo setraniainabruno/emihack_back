@@ -16,8 +16,8 @@ const authMiddleware = require("../utils/tokenMiddleware");
 router.get("/", authMiddleware.verifyToken, getAllUsers);
 router.get("/:id", getUserById);
 router.post("/ajouter", createUser);
-router.put("/update/:id",authMiddleware.verifyToken, updateUser);
-router.put("/update_password/:id",authMiddleware.verifyToken, updatePasswordUser);
+router.put("/update/:id", authMiddleware.verifyToken, updateUser);
+router.put("/update_password/:id", authMiddleware.verifyToken, updatePasswordUser);
 router.delete("/:id", deleteUser);
 router.patch("/:id/login", updateLastLogin);
 
