@@ -14,7 +14,7 @@ exports.uploadSource = async (req, res) => {
     const sheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(sheet);
 
-    console.log("Données extraites du fichier Excel:", jsonData);
+    // console.log("Données extraites du fichier Excel:", jsonData);
 
     // Insérer toutes les données en une seule fois
     const result = await Source.insertMany(jsonData);
