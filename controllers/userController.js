@@ -59,10 +59,10 @@ exports.createUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { nom, email, role, verification, password } = req.body;
-    
+
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
-      { nom, email, role, verification},
+      { nom, email, role, verification },
       { new: true }
     );
 
@@ -151,6 +151,8 @@ exports.loginUser = async (req, res) => {
     }
 
     // Vérifier le mot de passe
+    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log(hashedPassword)
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       console.log("Email ou mot de passe incorrect");
